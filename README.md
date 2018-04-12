@@ -15,6 +15,17 @@ cd sqlalchemy-greenplum
 python setup.py install
 ```
 
+### Tests
+
+To run the tests, alter the db entry in setup.cfg and create that database and a schema within it named 'test_schema' on the server
+Then run from the project root folder
+```
+python setup.py test
+```
+
+There is a random failure for ServerSideCursorsTest_greenplum+psycopg2_8_3_23.test_roundtrip because it seems 
+that Greenplum doesn't always return the records in the same order. Perhaps the test result needs to be ordered.
+
 ### Usage
 ```
     from sqlalchemy import create_engine
