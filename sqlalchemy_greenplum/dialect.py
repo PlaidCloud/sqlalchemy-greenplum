@@ -125,3 +125,7 @@ class GreenplumDialect(PGDialect_psycopg2):
     def __init__(self, *args, **kw):
         super(GreenplumDialect, self).__init__(*args, **kw)
 
+    def initialize(self, connection):
+        super(GreenplumDialect, self).initialize(connection)
+        self.implicit_returning = False
+            # self.server_version_info > (8, 2) and self.__dict__.get('implicit_returning', True)
