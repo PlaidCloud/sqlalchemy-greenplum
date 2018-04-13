@@ -15,16 +15,16 @@ setup(
     author="Patrick Buxton",
     author_email="patrick.buxton@tartansolutions.com",
     description="SQLAlchemy dialect for Pivotal Greenplum Database",
-    packages=find_packages(exclude=("test", "test.*",)),
+    packages=find_packages(),
     zip_safe=False,
     install_requires=[
         "sqlalchemy"
     ],
     extras_require={
     },
-    tests_require=[
-
-    ],
+    setup_requires=['pytest-runner'],
+    tests_require=['pytest', 'mock'],
+    test_suite="test.test_suite",
     classifiers=[ # cf. http://pypi.python.org/pypi?%3Aaction=list_classifiers
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
