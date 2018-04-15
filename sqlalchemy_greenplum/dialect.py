@@ -220,3 +220,16 @@ class GreenplumDialect(PGDialect_psycopg2):
         super(GreenplumDialect, self).initialize(connection)
         self.implicit_returning = False
             # self.server_version_info > (8, 2) and self.__dict__.get('implicit_returning', True)
+
+    # def _get_server_version_info(self, connection):
+    #     v = connection.execute("select version()").scalar()
+    #     m = re.match(
+    #         r'.*(?:PostgreSQL|EnterpriseDB) '
+    #         r'(\d+)\.?(\d+)?(?:\.(\d+))?(?:\.\d+)?(?:devel|beta)?'
+    #         r'?.*(Greenplum Database) '
+    #         r'(\d+)\.?(\d+)?(?:\.(\d+))?(?:\.\d+)',
+    #         v)
+    #     if not m:
+    #         raise AssertionError(
+    #             "Could not determine version from string '%s'" % v)
+    #     return tuple([int(x) for x in m.group(1, 2, 3) if x is not None])
