@@ -8,6 +8,10 @@ from sqlalchemy.dialects.postgresql.base import (
 from sqlalchemy.dialects.postgresql.psycopg2 import PGDialect_psycopg2, PGCompiler_psycopg2, PGIdentifierPreparer_psycopg2
 from sqlalchemy.sql import compiler, expression
 import alembic_gp
+import logging
+
+logger = logging.getLogger('sqlalchemy.dialects.postgresql')
+
 
 class GreenplumDDLCompiler(PGDDLCompiler):
     """ Specific DDL Compiler for Greenplum
@@ -72,7 +76,23 @@ class GreenplumDDLCompiler(PGDDLCompiler):
         self._verify_index_table(index)
         text = "CREATE "
         if index.unique:
-            text += "UNIQUE "
+            distributed_by = index.table.dialect_options['greenplum']['distributed_by']
+            # logger.info('table_cols={}'.format(str(index.table.columns)))
+            if distributed_by is None:
+                primary_key_cols = [c.name for c in index.table.primary_key]
+                logger.info('primary_key_cols={}'.format(str(primary_key_cols)))
+                distributed_by_cols = primary_key_cols
+                if len(distributed_by_cols) == 0:
+                    distributed_by_cols = [index.table.columns[0]]
+            elif distributed_by == 'RANDOM':
+                distributed_by_cols = []
+            else:
+                distributed_by_cols = distributed_by.split(',')
+            logger.info('distributed_by_cols={}'.format(str(distributed_by_cols)))
+            index_cols = [c.name for c in index.columns]
+            logger.info('index_cols={}'.format(str(index_cols)))
+            if set(index_cols).issuperset(set(distributed_by_cols)):
+                text += "UNIQUE "
         text += "INDEX "
 
         if self.dialect._supports_create_index_concurrently:
