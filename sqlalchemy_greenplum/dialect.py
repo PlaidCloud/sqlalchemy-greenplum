@@ -162,6 +162,10 @@ class GreenplumDDLCompiler(PGDDLCompiler):
         text += self._prepared_index_name(index, include_schema=True)
         return text
 
+    def visit_drop_table(self, element):
+        superclass = super(GreenplumDDLCompiler, self)
+        return superclass.visit_drop_table(element) + ' CASCADE'
+
 class GreenplumCompiler(PGCompiler_psycopg2):
     pass
     # def format_from_hint_text(self, sqltext, table, hint, iscrud):
