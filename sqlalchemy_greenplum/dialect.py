@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql.base import (
 )
 from sqlalchemy.dialects.postgresql.psycopg2 import PGDialect_psycopg2, PGCompiler_psycopg2, PGIdentifierPreparer_psycopg2
 from sqlalchemy.sql import compiler, expression
-import alembic_gp
+from sqlalchemy_greenplum import alembic_gp
 import logging
 
 logger = logging.getLogger('sqlalchemy.dialects.postgresql')
