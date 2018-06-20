@@ -884,7 +884,7 @@ class CompileTest(fixtures.TestBase, AssertsCompiledSQL):
         table = Table("pg_table", MetaData(),
                       Column("col1", Integer),
                       Column("log", Integer))
-        x = select([table.c.col1, table.c.variadic])
+        x = select([table.c.col1, table.c.log])
 
         self.assert_compile(
             x,
