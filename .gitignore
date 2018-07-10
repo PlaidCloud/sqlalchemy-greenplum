@@ -5,5 +5,4 @@
 .tox/
 .idea/
 build/
-dist/
 
