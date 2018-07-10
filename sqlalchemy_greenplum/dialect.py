@@ -10,6 +10,29 @@ from sqlalchemy.sql import compiler, expression
 from sqlalchemy_greenplum import alembic_gp
 import logging
 
+# from https://github.com/greenplum-db/gpdb/blob/aa5fe3d52a20e26fb6883cad3d44bbe3addcb734/src/include/parser/kwlist.h
+RESERVED_WORDS = {
+    "all", "analyse", "analyze", "and", "any", "array", "as", "asc",
+    "asymmetric", "both", "case", "cast", "check", "collate", "column",
+    "constraint", "create", "current_catalog", "current_date",
+    "current_role", "current_time", "current_timestamp", "current_user",
+    "decode", "default", "deferrable", "desc", "distinct", "distributed",
+    "do", "else", "end", "except", "exclude", "false", "fetch", "filter",
+    "following", "for", "foreign", "from", "grant", "group", "having",
+    "in", "initially", "intersect", "into", "leading", "limit",
+    "localtime", "localtimestamp", "not", "null", "offset", "on", "only",
+    "or", "order", "partition", "placing", "preceding", "primary",
+    "references", "returning", "scatter", "select", "session_user",
+    "some", "symmetric", "table", "then", "to", "trailing", "true",
+    "unbounded", "union", "unique", "user", "using", "variadic", "when",
+    "where", "window", "with",
+
+    "authorization", "binary", "concurrently", "cross", "current_schema",
+    "freeze", "full", "ilike", "inner", "is", "isnull", "join", "left",
+    "like", "log", "natural", "notnull", "outer", "overlaps", "right",
+    "similar", "verbose"
+}
+
 logger = logging.getLogger('sqlalchemy.dialects.postgresql')
 
 
@@ -23,8 +46,9 @@ class GreenplumDDLCompiler(PGDDLCompiler):
         """Process table creation options for Greenplum
 
         Note:
-            This is overriding the PGDDLCompiler, so any postgresql options will NOT be processed using this dialect. The PostgreSQL options
-            for "inherits", on_commit" and "tablespace" are replicated here though so can be specified in addition for Greenplum.
+            This is overriding the PGDDLCompiler, so any postgresql options will NOT be processed using this dialect.
+            The PostgreSQL options for "inherits", on_commit" and "tablespace" are replicated here though so can be
+            specified in addition for Greenplum.
             Options for this dialect include (by example):
               greenplum_storage_params = 'OIDS=FALSE,APPENDONLY=TRUE' a string specifying the options (for now)
               greenplum_distributed_by = '"Name"' a string specifying the distribution fields
@@ -162,6 +186,7 @@ class GreenplumDDLCompiler(PGDDLCompiler):
         text += self._prepared_index_name(index, include_schema=True)
         return text
 
+
 class GreenplumCompiler(PGCompiler_psycopg2):
     pass
     # def format_from_hint_text(self, sqltext, table, hint, iscrud):
@@ -169,8 +194,10 @@ class GreenplumCompiler(PGCompiler_psycopg2):
     #         raise exc.CompileError("Unrecognized hint: %r" % hint)
     #     return "ONLY " + sqltext
 
+
 class GreenplumIdentifierPreparer(PGIdentifierPreparer_psycopg2):
-    pass
+    reserved_words = RESERVED_WORDS
+
 
 class GreenplumDialect(PGDialect_psycopg2):
     """Pivotal Greenplum Dialect

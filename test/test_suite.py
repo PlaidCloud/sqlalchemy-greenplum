@@ -880,6 +880,16 @@ class CompileTest(fixtures.TestBase, AssertsCompiledSQL):
             x,
             '''SELECT pg_table.col1, pg_table."variadic" FROM pg_table''')
 
+    def test_greenplum_reserved_words(self):
+        table = Table("pg_table", MetaData(),
+                      Column("col1", Integer),
+                      Column("log", Integer))
+        x = select([table.c.col1, table.c.log])
+
+        self.assert_compile(
+            x,
+            '''SELECT pg_table.col1, pg_table."log" FROM pg_table''')
+
     def test_array(self):
         c = Column('x', postgresql.ARRAY(Integer))
 
