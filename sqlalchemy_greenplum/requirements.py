@@ -42,11 +42,7 @@ class Requirements(SuiteRequirements):
     @property
     def reflects_pk_names(self):
         return exclusions.open()
-    
-    @property
-    def order_by_col_from_union(self):
-        return exclusions.open()
-    
+
     @property
     def independent_connections(self):
         return exclusions.open()
@@ -122,7 +118,7 @@ class Requirements(SuiteRequirements):
 
     @property
     def unique_constraint_reflection(self):
-        # for version 5.4 gp .... usually open for PG server_version...
+        # Greenplum does not allow
         return exclusions.closed()
 
     @property
@@ -131,7 +127,6 @@ class Requirements(SuiteRequirements):
 
     @property
     def check_constraint_reflection(self):
-        # for version 5.4 gp .... usually open for PG server_version...
         return exclusions.open()
 
     @property
@@ -147,12 +142,18 @@ class Requirements(SuiteRequirements):
     @property
     def ctes(self):
         """Target database supports CTEs"""
-        return exclusions.open()
+        return only_if(
+            ["postgresql>=8.4"],
+            "Backend does not support ctes"
+        )
 
     @property
     def ctes_on_dml(self):
         """target database supports CTES which consist of INSERT, UPDATE or DELETE"""
-        return exclusions.open()
+        return only_if(
+            ["postgresql>=8.4"],
+            "Backend does not support ctes"
+        )
 
     @property
     def mod_operator_as_percent_sign(self):
@@ -176,10 +177,7 @@ class Requirements(SuiteRequirements):
 
     @property
     def window_functions(self):
-        return exclusions.open() # for GP 5.4
-        #return only_if([
-        #            "postgresql>=8.4"
-        #        ], "Backend does not support window functions")
+        return exclusions.open()
 
     @property
     def two_phase_transactions(self):
@@ -213,7 +211,7 @@ class Requirements(SuiteRequirements):
 
     @property
     def json_type(self):
-        return exclusions.open() #for GP5.4
+        return exclusions.open()
 
     @property
     def datetime_historic(self):
@@ -338,5 +336,6 @@ class Requirements(SuiteRequirements):
     @property
     def postgresql_utf8_server_encoding(self):
         return only_if(
-            config.db.scalar("show server_encoding").lower() == "utf8"
+            lambda config: against(config, "postgresql")
+            and config.db.scalar("show server_encoding").lower() == "utf8"
         )
