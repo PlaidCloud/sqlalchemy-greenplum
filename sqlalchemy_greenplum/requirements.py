@@ -132,7 +132,7 @@ class Requirements(SuiteRequirements):
     @property
     def check_constraint_reflection(self):
         # for version 5.4 gp .... usually open for PG server_version...
-        return exclusions.closed()
+        return exclusions.open()
 
     @property
     def temporary_views(self):
@@ -176,10 +176,10 @@ class Requirements(SuiteRequirements):
 
     @property
     def window_functions(self):
-        return exclusions.closed() # for GP 5.4
-        # return only_if([
-        #             "postgresql>=8.4", "mssql", "oracle"
-        #         ], "Backend does not support window functions")
+        return exclusions.open() # for GP 5.4
+        #return only_if([
+        #            "postgresql>=8.4"
+        #        ], "Backend does not support window functions")
 
     @property
     def two_phase_transactions(self):
@@ -213,7 +213,7 @@ class Requirements(SuiteRequirements):
 
     @property
     def json_type(self):
-        return exclusions.closed() #for GP5.4
+        return exclusions.open() #for GP5.4
 
     @property
     def datetime_historic(self):
@@ -302,7 +302,7 @@ class Requirements(SuiteRequirements):
 
     @property
     def postgresql_jsonb(self):
-        return exclusions.closed()
+        return exclusions.open()
         # return only_on("postgresql >= 9.4") + skip_if(
         #     lambda config:
         #     config.db.dialect.driver == "pg8000" and
