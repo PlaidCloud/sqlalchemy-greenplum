@@ -22,27 +22,25 @@ setup(
     ],
     extras_require={
     },
-    setup_requires=['pytest-runner'],
-    tests_require=['pytest', 'mock'],
+    setup_requires=["pytest-runner"],
+    tests_require=["pytest", "mock"],
     test_suite="test.test_suite",
     classifiers=[ # cf. http://pypi.python.org/pypi?%3Aaction=list_classifiers
-        'Development Status :: 2 - Pre-Alpha',
-        'Intended Audience :: Developers',
-        'License :: Other/Proprietary License',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: Implementation :: PyPy',
-        'Programming Language :: SQL',
-        'Topic :: Database',
-        'Topic :: Database :: Front-Ends',
-        'Topic :: Software Development',
-        'Topic :: Software Development :: Libraries :: Python Modules',
+        "Development Status :: 2 - Pre-Alpha",
+        "Intended Audience :: Developers",
+        "License :: Other/Proprietary License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: Implementation :: PyPy",
+        "Programming Language :: SQL",
+        "Topic :: Database",
+        "Topic :: Database :: Front-Ends",
+        "Topic :: Software Development",
+        "Topic :: Software Development :: Libraries :: Python Modules",
     ],
      entry_points = {
-         'sqlalchemy.dialects':
-         ['greenplum = sqlalchemy_greenplum.dialect:GreenplumDialect']
+         "sqlalchemy.dialects":
+         ["greenplum = sqlalchemy_greenplum.dialect:GreenplumDialect"]
      },
 )
