@@ -2,11 +2,9 @@
 # coding=utf-8
 
 import sqlalchemy
-from sqlalchemy.dialects.postgresql.base import (
-    PGDialect, PGDDLCompiler, PGCompiler
-)
+import sqlalchemy.dialects.postgresql.base as base
 from sqlalchemy.dialects.postgresql.psycopg2 import PGDialect_psycopg2, PGCompiler_psycopg2, PGIdentifierPreparer_psycopg2
-from sqlalchemy.sql import compiler, expression
+from sqlalchemy.sql import compiler, expression, coercions, roles
 from sqlalchemy_greenplum import alembic_gp
 import logging
 
@@ -36,7 +34,7 @@ RESERVED_WORDS = {
 logger = logging.getLogger('sqlalchemy.dialects.postgresql')
 
 
-class GreenplumDDLCompiler(PGDDLCompiler):
+class GreenplumDDLCompiler(base.PGDDLCompiler):
     """ Specific DDL Compiler for Greenplum
 
     Note:
@@ -132,7 +130,10 @@ class GreenplumDDLCompiler(PGDDLCompiler):
 
         using = index.dialect_options['greenplum']['using']
         if using:
-            text += "USING %s " % preparer.quote(using)
+            text += (
+                "USING %s "
+                % self.preparer.validate_sql_phrase(using, base.IDX_USING).lower()
+            )
 
         ops = index.dialect_options["greenplum"]["ops"]
         text += "(%s)" \
@@ -142,8 +143,10 @@ class GreenplumDDLCompiler(PGDDLCompiler):
                             expr.self_group()
                             if not isinstance(expr, expression.ColumnClause)
                             else expr,
-                            include_table=False, literal_binds=True) +
-                        (
+                            include_table=False,
+                            literal_binds=True,
+                        )
+                        + (
                             (' ' + ops[expr.key])
                             if hasattr(expr, 'key')
                             and expr.key in ops else ''
@@ -167,9 +170,14 @@ class GreenplumDDLCompiler(PGDDLCompiler):
         whereclause = index.dialect_options["greenplum"]["where"]
 
         if whereclause is not None:
+            whereclause = coercions.expect(
+                roles.DDLExpressionRole, whereclause
+            )
             where_compiled = self.sql_compiler.process(
-                whereclause, include_table=False,
-                literal_binds=True)
+                whereclause,
+                include_table=False,
+                literal_binds=True,
+            )
             text += " WHERE " + where_compiled
         return text
 
@@ -206,6 +214,7 @@ class GreenplumDialect(PGDialect_psycopg2):
        Inherits most of the functionality from PGDialect_psycopg2
     """
     name = 'greenplum'
+    supports_statement_cache = True
     #supports_alter = True
     #max_identifier_length = 63
     #supports_sane_rowcount = True
@@ -257,8 +266,8 @@ class GreenplumDialect(PGDialect_psycopg2):
     #reflection_options = ('postgresql_ignore_search_path', )
 
     #_backslash_escapes = True
-    #_supports_create_index_concurrently = True
-    #_supports_drop_index_concurrently = True
+    _supports_create_index_concurrently = False
+    _supports_drop_index_concurrently = True
 
     def __init__(self, *args, **kw):
         super(GreenplumDialect, self).__init__(*args, **kw)
