@@ -3,9 +3,12 @@ import os
 from setuptools import setup, find_packages
 
 source_location = os.path.abspath(os.path.dirname(__file__))
+
+
 def get_version():
     with open(os.path.join(source_location, "VERSION")) as version:
         return version.readline().strip()
+
 
 setup(
     name="sqlalchemy-greenplum",
@@ -15,6 +18,8 @@ setup(
     author="Patrick Buxton",
     author_email="patrick.buxton@tartansolutions.com",
     description="SQLAlchemy dialect for Pivotal Greenplum Database",
+    long_description="SQLAlchemy dialect for Pivotal Greenplum Database",
+    long_description_content_type="text/markdown",
     packages=find_packages(),
     zip_safe=False,
     install_requires=[
@@ -43,10 +48,10 @@ setup(
         "Topic :: Software Development",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-     entry_points={
-         "sqlalchemy.dialects": [
-             "greenplum = sqlalchemy_greenplum.dialect:GreenplumDialect",
-             "greenplum.psycopg2 = sqlalchemy_greenplum.dialect:GreenplumDialect"
-         ]
-     },
+    entry_points={
+        "sqlalchemy.dialects": [
+            "greenplum = sqlalchemy_greenplum.dialect:GreenplumDialect",
+            "greenplum.psycopg2 = sqlalchemy_greenplum.dialect:GreenplumDialect"
+        ]
+    },
 )
