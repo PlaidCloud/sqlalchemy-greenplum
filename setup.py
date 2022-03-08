@@ -30,8 +30,12 @@ setup(
         "Intended Audience :: Developers",
         "License :: Other/Proprietary License",
         "Operating System :: OS Independent",
-        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: Implementation :: PyPy",
         "Programming Language :: SQL",
         "Topic :: Database",
@@ -39,8 +43,10 @@ setup(
         "Topic :: Software Development",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-     entry_points = {
-         "sqlalchemy.dialects":
-         ["greenplum = sqlalchemy_greenplum.dialect:GreenplumDialect"]
+     entry_points={
+         "sqlalchemy.dialects": [
+             "greenplum = sqlalchemy_greenplum.dialect:GreenplumDialect",
+             "greenplum.psycopg2 = sqlalchemy_greenplum.dialect:GreenplumDialect"
+         ]
      },
 )

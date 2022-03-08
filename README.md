@@ -6,7 +6,7 @@ with Alembic for generation of migration scripts.
 
 ## Prerequisites
 
-Python 2.7 or Python 3.X
+Python 3.X
 
 ### Installation
 ```

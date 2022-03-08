@@ -20,35 +20,22 @@ from sqlalchemy.testing.exclusions import \
 
 class Requirements(SuiteRequirements):
     @property
-    def returning(self):
+    def foreign_key_constraint_name_reflection(self):
+        return exclusions.open()
+
+    @property
+    def table_ddl_if_exists(self):
+        """target platform supports IF NOT EXISTS / IF EXISTS for tables."""
+        return exclusions.open()
+
+    @property
+    def index_ddl_if_exists(self):
+        """target platform supports IF NOT EXISTS / IF EXISTS for indexes."""
         return exclusions.closed()
 
     @property
-    def table_reflection(self):
-        return exclusions.open()
-
-    @property
-    def duplicate_key_raises_integrity_error(self):
-        return exclusions.closed()
-
-    @property
-    def temp_table_reflection(self):
-        return exclusions.closed()
-
-    @property
-    def primary_key_constraint_reflection(self):
-        return exclusions.open()
-
-    @property
-    def reflects_pk_names(self):
-        return exclusions.open()
-
-    @property
-    def independent_connections(self):
-        return exclusions.open()
-
-    @property
-    def implicitly_named_constraints(self):
+    def deferrable_fks(self):
+        """target database must support deferrable fks"""
         return exclusions.open()
 
     @property
@@ -56,7 +43,19 @@ class Requirements(SuiteRequirements):
         return exclusions.open()
 
     @property
+    def fk_constraint_option_reflection_ondelete_restrict(self):
+        return exclusions.open()
+
+    @property
+    def fk_constraint_option_reflection_ondelete_noaction(self):
+        return exclusions.open()
+
+    @property
     def foreign_key_constraint_option_reflection_onupdate(self):
+        return exclusions.open()
+
+    @property
+    def fk_constraint_option_reflection_onupdate_restrict(self):
         return exclusions.open()
 
     @property
@@ -64,11 +63,8 @@ class Requirements(SuiteRequirements):
         return exclusions.open()
 
     @property
-    def identity(self):
-        return exclusions.closed()
-
-    @property
-    def reflectable_autoincrement(self):
+    def boolean_col_expressions(self):
+        """Target database must support boolean expressions as columns"""
         return exclusions.open()
 
     @property
@@ -76,88 +72,70 @@ class Requirements(SuiteRequirements):
         return exclusions.open()
 
     @property
-    def isolation_level(self):
-        return exclusions.open()
-
-    @property
-    def autocommit(self):
-        return exclusions.open()
-
-    @property
-    def row_triggers(self):
-        return exclusions.closed()
-
-    @property
     def update_from(self):
+        """Target must support UPDATE..FROM syntax"""
         return exclusions.open()
 
     @property
     def delete_from(self):
+        """Target must support DELETE FROM..FROM or DELETE..USING syntax"""
         return exclusions.open()
 
     @property
-    def views(self):
-        """Target database must support VIEWs."""
-        return exclusions.open()
-
-    @property
-    def schemas(self):
-        """Target database must support external schemas, and have one named 'test_schema'.
-        """
-        return exclusions.open()
-
-    @property
-    def implicit_default_schema(self):
+    def savepoints(self):
+        """Target database must support savepoints."""
         return exclusions.open()
 
     @property
     def cross_schema_fk_reflection(self):
-        """target system must support reflection of inter-schema foreign keys
+        """target system must support reflection of inter-schema foreign keys"""
+        return exclusions.open()
+
+    @property
+    def implicit_default_schema(self):
+        """target system has a strong concept of 'default' schema that can
+        be referred to implicitly.
         """
         return exclusions.open()
 
     @property
-    def unique_constraint_reflection(self):
-        # Greenplum does not allow
-        return exclusions.closed()
-
-    @property
-    def unique_constraint_reflection_no_index_overlap(self):
-        return self.unique_constraint_reflection
+    def default_schema_name_switch(self):
+        return exclusions.open()
 
     @property
     def check_constraint_reflection(self):
         return exclusions.open()
 
     @property
-    def temporary_views(self):
-        """target database supports temporary views"""
+    def indexes_with_expressions(self):
         return exclusions.open()
 
     @property
-    def update_nowait(self):
-        """Target database must support SELECT...FOR UPDATE NOWAIT"""
+    def table_value_constructor(self):
         return exclusions.open()
 
     @property
     def ctes(self):
         """Target database supports CTEs"""
-        return only_if(
-            ["postgresql>=8.4"],
-            "Backend does not support ctes"
-        )
+        return exclusions.open()
+
+    @property
+    def ctes_with_update_delete(self):
+        """target database supports CTES that ride on top of a normal UPDATE
+        or DELETE statement which refers to the CTE in a correlated subquery.
+        """
+        return exclusions.open()
 
     @property
     def ctes_on_dml(self):
-        """target database supports CTES which consist of INSERT, UPDATE or DELETE"""
-        return only_if(
-            ["postgresql>=8.4"],
-            "Backend does not support ctes"
-        )
+        """target database supports CTES which consist of INSERT, UPDATE
+        or DELETE *within* the CTE, e.g. WITH x AS (UPDATE....)"""
+        return exclusions.open()
 
     @property
     def mod_operator_as_percent_sign(self):
-        """target database must use a plain percent '%' as the 'modulus' operator."""
+        """target database must use a plain percent '%' as the 'modulus'
+        operator."""
         return exclusions.open()
 
     @property
@@ -171,22 +149,54 @@ class Requirements(SuiteRequirements):
         return exclusions.open()
 
     @property
-    def order_by_col_from_union(self):
-        """target database supports ordering by a column from a SELECT inside of a UNION"""
-        return exclusions.open()
-
-    @property
     def window_functions(self):
-        return exclusions.open()
-
-    @property
-    def two_phase_transactions(self):
-        """Target database must support two-phase transactions."""
-        return exclusions.open()
+        return only_if(
+            [
+                "greenplum>=8.4",
+            ],
+            "Backend does not support window functions",
+        )
+    #
+    # @property
+    # def two_phase_transactions(self):
+    #     """Target database must support two-phase transactions."""
+    #
+    #     def pg_prepared_transaction(config):
+    #         if not against(config, "postgresql"):
+    #             return True
+    #
+    #         with config.db.connect() as conn:
+    #             try:
+    #                 num = conn.scalar(
+    #                     text(
+    #                         "select cast(setting AS integer) from pg_settings "
+    #                         "where name = 'max_prepared_transactions'"
+    #                     )
+    #                 )
+    #             except exc.OperationalError:
+    #                 return False
+    #             else:
+    #                 return num > 0
+    #
+    #     return skip_if(
+    #         [
+    #             NotPredicate(
+    #                 LambdaPredicate(
+    #                     pg_prepared_transaction,
+    #                     "max_prepared_transactions not available or zero",
+    #                 )
+    #             ),
+    #         ]
+    #     )
 
     @property
     def two_phase_recovery(self):
         return self.two_phase_transactions
+
+    @property
+    def views(self):
+        """Target database must support VIEWs."""
+        return exclusions.open()
 
     @property
     def unicode_ddl(self):
@@ -194,37 +204,57 @@ class Requirements(SuiteRequirements):
         return exclusions.open()
 
     @property
-    def dbapi_lastrowid(self):
-        """"target backend includes a 'lastrowid' accessor on the DBAPI
-        cursor object.
-        """
-        return exclusions.closed() #For GP5.4
-
-    @property
     def nullsordering(self):
         """Target backends that support nulls ordering."""
         return exclusions.open()
 
     @property
-    def array_type(self):
+    def reflects_pk_names(self):
+        """Target driver reflects the name of primary key constraints."""
         return exclusions.open()
 
     @property
     def json_type(self):
+        return only_on(
+            [
+                "greenplum >= 9.3",
+            ]
+        )
+
+    @property
+    def legacy_unconditional_json_extract(self):
+        """Backend has a JSON_EXTRACT or similar function that returns a
+        valid JSON string in all cases.
+        Used to test a legacy feature and is not needed.
+        """
+        return exclusions.open()
+
+    @property
+    def reflects_json_type(self):
+        return only_on(
+            [
+                "greenplum >= 9.3",
+            ]
+        )
+
+    @property
+    def datetime_timezone(self):
+        return exclusions.open()
+
+    @property
+    def time_timezone(self):
         return exclusions.open()
 
     @property
     def datetime_historic(self):
         """target dialect supports representation of Python
-        datetime.datetime() objects with historic (pre 1970) values."""
-
+        datetime.datetime() objects with historic (pre 1900) values."""
         return exclusions.open()
 
     @property
     def date_historic(self):
         """target dialect supports representation of Python
-        datetime.datetime() objects with historic (pre 1970) values."""
-
+        datetime.datetime() objects with historic (pre 1900) values."""
         return exclusions.open()
 
     @property
@@ -232,12 +262,6 @@ class Requirements(SuiteRequirements):
         """target backend supports Decimal() objects using E notation
         to represent very small values."""
         # NOTE: this exclusion isn't used in current tests.
-        return exclusions.open()
-
-    @property
-    def precision_numerics_enotation_large(self):
-        """target backend supports Decimal() objects using E notation
-        to represent very large values."""
         return exclusions.open()
 
     @property
@@ -252,90 +276,88 @@ class Requirements(SuiteRequirements):
         """A precision numeric type will return empty significant digits,
         i.e. a value such as 10.000 will come back in Decimal form with
         the .000 maintained."""
-
         return exclusions.open()
 
     @property
-    def precision_generic_float_type(self):
-        """target backend will return native floating point numbers with at
-        least seven decimal places when using the generic Float type."""
-
-        return exclusions.open()
-
-    def _has_pg_extension(self, name):
-        def check(config):
-            count = config.db.scalar(
-                "SELECT count(*) FROM pg_extension "
-                "WHERE extname='%s'" % name)
-            return bool(count)
-        return only_if(check, "needs %s extension" % name)
-
-    @property
-    def hstore(self):
-        return self._has_pg_extension("hstore")
-
-    @property
-    def btree_gist(self):
-        return self._has_pg_extension("btree_gist")
-
-    @property
-    def range_types(self):
-        def check_range_types(config):
-            try:
-                config.db.scalar("select '[1,2)'::int4range;")
-                return True
-            except Exception:
-                return False
-
-        return only_if(check_range_types)
-
-    @property
-    def postgresql_test_dblink(self):
-        return exclusions.open()
-        # return skip_if(
-        #             lambda config: not config.file_config.has_option(
-        #                 'sqla_testing', 'postgres_test_db_link'),
-        #             "postgres_test_db_link option not specified in config"
-        #         )
-
-    @property
-    def postgresql_jsonb(self):
-        return exclusions.open()
-        # return only_on("postgresql >= 9.4") + skip_if(
-        #     lambda config:
-        #     config.db.dialect.driver == "pg8000" and
-        #     config.db.dialect._dbapi_version <= (1, 10, 1)
-        # )
-
-    @property
-    def psycopg2_native_json(self):
-        return self.psycopg2_compatibility
-
-    @property
-    def psycopg2_native_hstore(self):
-        return self.psycopg2_compatibility
-
-    @property
-    def psycopg2_compatibility(self):
+    def infinity_floats(self):
         return exclusions.open()
 
     @property
-    def psycopg2_or_pg8000_compatibility(self):
+    def percent_schema_names(self):
         return exclusions.open()
 
-    # def get_order_by_collation(self, config):
-    #     return "POSIX"
+    @property
+    def ad_hoc_engines(self):
+        return exclusions.closed()
 
     @property
-    def python_fixed_issue_8743(self):
-        return exclusions.skip_if(
-            lambda: sys.version_info < (2, 7, 8),
-            "Python issue 8743 fixed in Python 2.7.8"
-        )
+    def computed_columns(self):
+        return skip_if(["greenplum < 12"])
 
     @property
-    def postgresql_utf8_server_encoding(self):
-        return only_if(
-            lambda config: against(config, "postgresql")
-            and config.db.scalar("show server_encoding").lower() == "utf8"
-        )
+    def computed_columns_stored(self):
+        return self.computed_columns
+
+    @property
+    def computed_columns_virtual(self):
+        return exclusions.closed()
+
+    @property
+    def computed_columns_default_persisted(self):
+        return self.computed_columns
+
+    @property
+    def computed_columns_reflect_persisted(self):
+        return self.computed_columns
+
+    @property
+    def regexp_match(self):
+        return exclusions.open()
+
+    @property
+    def regexp_replace(self):
+        return exclusions.open()
+
+    @property
+    def supports_distinct_on(self):
+        """If a backend supports the DISTINCT ON in a select"""
+        return exclusions.open()
+
+    @property
+    def identity_columns(self):
+        return only_if(["greenplum >= 10"])
+
+    @property
+    def identity_columns_standard(self):
+        return self.identity_columns
+
+    @property
+    def index_reflects_included_columns(self):
+        return only_on(["greenplum >= 11"])
+
+    @property
+    def fetch_first(self):
+        return exclusions.open()
+
+    @property
+    def fetch_ties(self):
+        return only_on(["greenplum >= 13"])
+
+    @property
+    def fetch_no_order_by(self):
+        return exclusions.open()
+
+    @property
+    def fetch_offset_with_options(self):
+        # use together with fetch_first
+        return exclusions.open()
+
+    @property
+    def fetch_expression(self):
+        # use together with fetch_first
+        return exclusions.open()
+
+    @property
+    def reflect_tables_no_columns(self):
+        # so far sqlite, mariadb, mysql don't support this
+        return exclusions.open()
