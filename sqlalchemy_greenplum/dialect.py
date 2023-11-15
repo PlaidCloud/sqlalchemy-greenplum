@@ -3,7 +3,7 @@
 
 import sqlalchemy
 import sqlalchemy.dialects.postgresql.base as base
-from sqlalchemy.dialects.postgresql.psycopg2 import PGDialect_psycopg2, PGCompiler_psycopg2, PGIdentifierPreparer_psycopg2
+from sqlalchemy.dialects.postgresql.psycopg2 import PGDialect_psycopg2, PGIdentifierPreparer_psycopg2
 from sqlalchemy.sql import compiler, expression, coercions, roles
 from sqlalchemy_greenplum import alembic_gp
 import logging
@@ -84,6 +84,8 @@ class GreenplumDDLCompiler(base.PGDDLCompiler):
         if gp_opts['distributed_by']:
             if gp_opts['distributed_by'].upper() == 'RANDOM':
                 table_opts.append('\n DISTRIBUTED RANDOMLY')
+            elif gp_opts['distributed_by'].upper() == 'REPLICA':
+                table_opts.append('\n DISTRIBUTED REPLICATED')
             else:
                 table_opts.append('\n DISTRIBUTED BY ({0})'.format(gp_opts['distributed_by']))
 
@@ -122,6 +124,9 @@ class GreenplumDDLCompiler(base.PGDDLCompiler):
             if concurrently:
                 text += "CONCURRENTLY "
 
+        if create.if_not_exists:
+            text += "IF NOT EXISTS "
+
         text += "%s ON %s " % (
             self._prepared_index_name(index,
                                       include_schema=False),
@@ -154,6 +159,24 @@ class GreenplumDDLCompiler(base.PGDDLCompiler):
                         for expr in index.expressions
                     ])
                 )
+
+        includeclause = index.dialect_options["greenplum"]["include"]
+        if includeclause:
+            inclusions = [
+                index.table.c[col] if isinstance(col, str) else col
+                for col in includeclause
+            ]
+            text += " INCLUDE (%s)" % ", ".join(
+                [preparer.quote(c.name) for c in inclusions]
+            )
+
+        # nulls_not_distinct = index.dialect_options["greenplum"][
+        #     "nulls_not_distinct"
+        # ]
+        # if nulls_not_distinct is True:
+        #     text += " NULLS NOT DISTINCT"
+        # elif nulls_not_distinct is False:
+        #     text += " NULLS DISTINCT"
 
         withclause = index.dialect_options['greenplum']['with']
 
@@ -195,7 +218,7 @@ class GreenplumDDLCompiler(base.PGDDLCompiler):
         return text
 
 
-class GreenplumCompiler(PGCompiler_psycopg2):
+class GreenplumCompiler(base.PGCompiler):
     pass
     # def format_from_hint_text(self, sqltext, table, hint, iscrud):
     #     if hint.upper() != 'ONLY':
@@ -246,6 +269,7 @@ class GreenplumDialect(PGDialect_psycopg2):
     construct_arguments = [
         (sqlalchemy.schema.Index, {
             "using": False,
+            "include": None,
             "where": None,
             "ops": {},
             "concurrently": False,

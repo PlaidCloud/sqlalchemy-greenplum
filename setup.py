@@ -9,21 +9,24 @@ def get_version():
     with open(os.path.join(source_location, "VERSION")) as version:
         return version.readline().strip()
 
+def get_readme():
+    with open(os.path.join(source_location, "README.md")) as readme:
+        return readme.read()
 
 setup(
     name="sqlalchemy-greenplum",
     version=get_version(),
-    license="LICENSE.txt",
+    license="Apache License 2.0",
     url="https://github.com/PlaidCloud/sqlalchemy-greenplum",
     author="Patrick Buxton",
     author_email="patrick.buxton@tartansolutions.com",
-    description="SQLAlchemy dialect for Pivotal Greenplum Database",
-    long_description="SQLAlchemy dialect for Pivotal Greenplum Database",
+    description="SQLAlchemy dialect for Greenplum Database",
+    long_description=get_readme(),
     long_description_content_type="text/markdown",
     packages=find_packages(),
     zip_safe=False,
     install_requires=[
-        "sqlalchemy"
+        "sqlalchemy>=1.4.0,<3", "psycopg2"
     ],
     extras_require={
     },
@@ -31,17 +34,17 @@ setup(
     tests_require=["pytest", "mock"],
     test_suite="test.test_suite",
     classifiers=[ # cf. http://pypi.python.org/pypi?%3Aaction=list_classifiers
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "License :: Other/Proprietary License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: Implementation :: PyPy",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Programming Language :: SQL",
         "Topic :: Database",
         "Topic :: Database :: Front-Ends",
