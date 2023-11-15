@@ -108,7 +108,7 @@ class Requirements(SuiteRequirements):
 
     @property
     def indexes_with_expressions(self):
-        return exclusions.open()
+        return only_on(["greenplum >= 11"])
 
     @property
     def table_value_constructor(self):
