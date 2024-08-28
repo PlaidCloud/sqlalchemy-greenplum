@@ -26,7 +26,7 @@ setup(
     packages=find_packages(),
     zip_safe=False,
     install_requires=[
-        "sqlalchemy>=1.4.0,<3", "psycopg2"
+        "sqlalchemy>=1.4.0,<3", "psycopg2-binary"
     ],
     extras_require={
     },
