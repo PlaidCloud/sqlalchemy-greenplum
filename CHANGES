@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.2.0
+-----
+- SQLAlchemy 2.0 Support
+
 0.1.0
 -----
 - SQLAlchemy 1.4 Support
