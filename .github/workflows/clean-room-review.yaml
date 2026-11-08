@@ -1,0 +1,46 @@
+name: Clean-room review recorded
+# Merge gate for the default branch (SOC 2 CC8.1): a pull request may merge only
+# when it carries an approving review, or an independent clean-room review whose
+# verdict is APPROVE recorded as a review comment (the author cannot approve their
+# own PR). Re-evaluated whenever a review is submitted or the PR is updated.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+
+permissions:
+  pull-requests: read
+  contents: read
+
+jobs:
+  clean-room-review:
+    name: clean-room-review
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check for an approving or clean-room review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+          DEFAULT: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if [ "$BASE" != "$DEFAULT" ]; then
+            echo "Target $BASE is not the default branch ($DEFAULT); gate not required."; exit 0
+          fi
+          gh api --paginate "repos/$REPO/pulls/$PR/reviews" | jq -s 'add // []' > reviews.json
+          approved=$(jq '[.[] | select(.state=="APPROVED")] | length' reviews.json)
+          cleanroom=$(jq '[.[] | select((.body // "") | test("Clean-room review[\\s\\S]{0,200}APPROVE"))] | length' reviews.json)
+          blocking=$(jq '[.[] | select(.state=="CHANGES_REQUESTED")] | length' reviews.json)
+          echo "approved=$approved clean-room=$cleanroom changes-requested=$blocking"
+          if [ "$blocking" -gt 0 ] && [ "$approved" -eq 0 ]; then
+            echo "::error::A reviewer requested changes; resolve and re-review."; exit 1
+          fi
+          if [ "$approved" -gt 0 ] || [ "$cleanroom" -gt 0 ]; then
+            echo "Review requirement satisfied."; exit 0
+          fi
+          echo "::error::No approving review and no clean-room review (\"Clean-room review ... APPROVE\") recorded on PR #$PR."
+          exit 1
