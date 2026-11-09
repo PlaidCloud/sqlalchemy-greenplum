@@ -1,11 +1,16 @@
 name: Clean-room review recorded
-# Merge gate for the default branch (SOC 2 CC8.1): a pull request may merge only
-# when it carries an approving review, or an independent clean-room review whose
-# verdict is APPROVE recorded as a review comment (the author cannot approve their
-# own PR). Re-evaluated whenever a review is submitted or the PR is updated.
+# Merge gate for the default branch (SOC 2 CC8.1). A pull request may merge only
+# when, taking each reviewer's latest verdict, nobody is requesting changes and
+# someone approved the PR's current head commit, either with a GitHub approval
+# or with a clean-room review comment whose first line reads "— **APPROVE**"
+# (what /self-approve posts; the PR author may post it). Only reviewers with
+# write access count. A verdict covers only the commit it was given on, so
+# every push needs a fresh review.
+# Canonical copy and regression tests: PlaidCloud/plaidcloud-github-actions.
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    # edited: retargeting the base (e.g. beta-x -> master) must re-run the gate.
+    types: [opened, synchronize, reopened, ready_for_review, edited]
   pull_request_review:
     types: [submitted, edited, dismissed]
 
@@ -13,17 +18,22 @@ permissions:
   pull-requests: read
   contents: read
 
+concurrency:
+  group: clean-room-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   clean-room-review:
     name: clean-room-review
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Check for an approving or clean-room review
+      - name: Check for an approving or clean-room review of the head commit
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           BASE: ${{ github.event.pull_request.base.ref }}
           DEFAULT: ${{ github.event.repository.default_branch }}
         run: |
@@ -32,15 +42,48 @@ jobs:
             echo "Target $BASE is not the default branch ($DEFAULT); gate not required."; exit 0
           fi
           gh api --paginate "repos/$REPO/pulls/$PR/reviews" | jq -s 'add // []' > reviews.json
-          approved=$(jq '[.[] | select(.state=="APPROVED")] | length' reviews.json)
-          cleanroom=$(jq '[.[] | select((.body // "") | test("Clean-room review[\\s\\S]{0,200}APPROVE"))] | length' reviews.json)
-          blocking=$(jq '[.[] | select(.state=="CHANGES_REQUESTED")] | length' reviews.json)
-          echo "approved=$approved clean-room=$cleanroom changes-requested=$blocking"
-          if [ "$blocking" -gt 0 ] && [ "$approved" -eq 0 ]; then
-            echo "::error::A reviewer requested changes; resolve and re-review."; exit 1
+          # author_association hides private org members, so ask for repo permission.
+          # Only a 404 (deleted/unknown account) means "not a writer"; any other
+          # lookup failure fails closed rather than dropping a blocker's verdict.
+          : > writers.txt
+          while read -r login; do
+            if perm=$(gh api "repos/$REPO/collaborators/$login/permission" --jq .permission 2> err.txt); then
+              case $perm in admin|write) echo "$login" >> writers.txt ;; esac
+            elif grep -q '(HTTP 404)' err.txt; then
+              echo "$login: no such account; their reviews do not count."
+            else
+              echo "::error::Could not read $login's permission on $REPO ($(cat err.txt)); failing closed. Re-run this check."; exit 1
+            fi
+          done < <(jq -r '[.[].user.login // empty] | unique[]' reviews.json)
+          writers=$(jq -R . writers.txt | jq -sc .)
+          # Latest verdict per reviewer, as GitHub counts them: plain comments
+          # change nothing, a dismissal clears. A clean-room comment is read
+          # from its first line only, so prose such as "cannot APPROVE" or a
+          # sub-reviewer's APPROVE inside a REQUEST_CHANGES body never counts, and
+          # a clean-room header without a clear APPROVE blocks.
+          jq --arg head "$HEAD_SHA" --argjson writers "$writers" '
+            def header: (.body // "") | [splits("\n")] | map(select(test("\\S"))) | (.[0] // "");
+            def verdict:
+              if .state == "APPROVED" then "approve"
+              elif .state == "CHANGES_REQUESTED" then "block"
+              elif .state == "DISMISSED" then "none"
+              elif .state == "COMMENTED" and (header | test("^\\W*Clean-room (re-)?review")) then
+                if (header | test("—\\s*\\*\\*APPROVE\\*\\*")) and (header | test("REQUEST_CHANGES") | not)
+                then "approve" else "block" end
+              else empty end;
+            [ .[] | select(.submitted_at != null and (.user.login | IN($writers[])))
+                  | {who: (.user.login // "ghost"), at: .submitted_at, commit: .commit_id, v: verdict} ]
+            | sort_by(.at) | group_by(.who) | map(last)
+            | {blocking: [.[] | select(.v == "block") | .who],
+               approved: [.[] | select(.v == "approve" and .commit == $head) | .who],
+               stale:    [.[] | select(.v == "approve" and .commit != $head) | "\(.who)@\(.commit[0:7])"]}
+          ' reviews.json > verdict.json
+          echo "head=${HEAD_SHA:0:7} $(jq -c . verdict.json)"
+          if [ "$(jq '.blocking | length' verdict.json)" -gt 0 ]; then
+            echo "::error::Changes requested by $(jq -r '.blocking | join(", ")' verdict.json); resolve and re-review."; exit 1
           fi
-          if [ "$approved" -gt 0 ] || [ "$cleanroom" -gt 0 ]; then
-            echo "Review requirement satisfied."; exit 0
+          if [ "$(jq '.approved | length' verdict.json)" -gt 0 ]; then
+            echo "Review requirement satisfied for ${HEAD_SHA:0:7}."; exit 0
           fi
-          echo "::error::No approving review and no clean-room review (\"Clean-room review ... APPROVE\") recorded on PR #$PR."
+          echo "::error::No approval or clean-room APPROVE recorded on head ${HEAD_SHA:0:7} of PR #$PR (stale: $(jq -r '.stale | join(", ")' verdict.json)). Re-review the current head."
           exit 1
